@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ForenIQ Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="ForenIQ: AI-assisted, citation-verified analysis of mobile forensic UFDR reports. Results from the synthetic Operation Kaveri case.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column styled like a case file — exhibit labels, hashes and tables carry the identity; one evidence-tag yellow accent. */
+:root{
+  --bg:#f5f7f9; --paper:#ffffff; --ink:#15202b; --muted:#56636f; --line:#d7dee5;
+  --accent:#1f5f8b; --tag:#f2c230; --tag-ink:#2a2100;
+  --ok:#1d7a4a; --ok-bg:#e3f3ea; --bad:#b3261e; --bad-bg:#fbe7e5; --neutral-bg:#eef1f4;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --paper:#161e26; --ink:#e4eaf0; --muted:#97a4b0; --line:#2a3642;
+  --accent:#7bb6e0; --tag:#e9b824; --tag-ink:#231b00;
+  --ok:#6fd39c; --ok-bg:#163326; --bad:#ff8a80; --bad-bg:#3a1a18; --neutral-bg:#1d2731; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --paper:#161e26; --ink:#e4eaf0; --muted:#97a4b0; --line:#2a3642;
+  --accent:#7bb6e0; --tag:#e9b824; --tag-ink:#231b00;
+  --ok:#6fd39c; --ok-bg:#163326; --bad:#ff8a80; --bad-bg:#3a1a18; --neutral-bg:#1d2731; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);margin:0}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+a{color:var(--accent)} a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2.4rem,6vw,3.6rem);font-weight:800;font-stretch:80%;letter-spacing:-.01em}
+h2{font-size:1.75rem;font-weight:750;font-stretch:85%}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:68ch}
+.mono{font-family:var(--f-mono);font-size:.86em}
+.muted{color:var(--muted)}
+.label{font:600 .72rem/1 var(--f-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.tag{display:inline-block;background:var(--tag);color:var(--tag-ink);font:700 .74rem/1 var(--f-mono);padding:.4em .6em;border-radius:2px;letter-spacing:.03em}
+header.top{padding-block:40px 28px;border-bottom:1px solid var(--line)}
+.hero{display:grid;gap:18px}
+.hero .lede{font-size:1.15rem;color:var(--muted)}
+.notice{border:1px dashed var(--line);background:var(--paper);padding:12px 14px;font-size:.92rem;color:var(--muted);max-width:none}
+.links{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:600;font-size:.92rem;border-radius:4px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+section{padding-block:44px;border-bottom:1px solid var(--line);display:grid;gap:20px}
+.sec-head{display:grid;gap:8px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.kpi{background:var(--paper);padding:16px;display:grid;gap:4px}
+.kpi b{font:800 1.9rem/1 var(--f-display);font-stretch:85%;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.86rem;color:var(--muted)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;counter-reset:s;list-style:none;padding:0;margin:0}
+.flow li{background:var(--paper);border:1px solid var(--line);padding:12px;display:grid;gap:4px;font-size:.88rem;min-width:0}
+.flow li::before{counter-increment:s;content:"Step " counter(s);font:600 .7rem/1 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.flow li strong{font-family:var(--f-display);font-size:1rem}
+.tbl{overflow-x:auto;border:1px solid var(--line);background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 .72rem/1.2 var(--f-body);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--neutral-bg)}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right} th.num{text-align:right}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.n{background:var(--neutral-bg);color:var(--muted)}
+.cell-bar{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.cell-bar i{display:block;height:6px;background:var(--accent);border-radius:1px;opacity:.85}
+/* screen tour */
+.tour{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start}
+.tour nav{display:grid;gap:2px}
+.tour nav button{all:unset;cursor:pointer;padding:9px 12px;border-left:3px solid transparent;font-size:.92rem;color:var(--muted)}
+.tour nav button[aria-selected="true"]{border-left-color:var(--tag);color:var(--ink);font-weight:600;background:var(--paper)}
+.tour figure{margin:0;display:grid;gap:10px;min-width:0}
+.tour img{width:100%;height:auto;border:1px solid var(--line);display:block;background:var(--paper)}
+.tour figcaption{font-size:.92rem;color:var(--muted)}
+@media (max-width:720px){.tour{grid-template-columns:1fr}.tour nav{display:flex;overflow-x:auto;gap:4px}.tour nav button{border-left:0;border-bottom:3px solid transparent;white-space:nowrap}.tour nav button[aria-selected="true"]{border-bottom-color:var(--tag)}}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--paper);border:1px solid var(--line);padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+.flag{display:grid;gap:4px;padding-top:10px;border-top:1px solid var(--line);font-size:.86rem}
+.flag:first-of-type{border-top:0;padding-top:0}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 3.2rem;gap:10px;align-items:center;font-size:.9rem}
+.bar .track{grid-column:1/-1;height:8px;background:var(--neutral-bg)} .bar .fill{height:100%;background:var(--accent)}
+.bar.owner .fill{background:var(--muted);opacity:.55}
+.sentence{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--line);padding:12px 14px;display:grid;gap:6px;font-size:.93rem}
+.sentence.acc{border-left-color:var(--ok)} .sentence.rej{border-left-color:var(--bad)}
+.sentence ul{margin:0;padding-left:1.1em;color:var(--bad);font-size:.86rem}
+.toggle{display:flex;gap:6px;flex-wrap:wrap}
+.toggle button{all:unset;cursor:pointer;padding:7px 12px;border:1px solid var(--line);background:var(--paper);font-size:.88rem;border-radius:4px}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+pre{margin:0;background:var(--paper);border:1px solid var(--line);padding:14px;overflow-x:auto;font:.84rem/1.55 var(--f-mono)}
+.hash{word-break:break-all}
+footer{padding-block:36px 56px;display:grid;gap:10px;font-size:.9rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.tour img{transition:opacity .2s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <div class="hero">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="tag">EXHIBIT · OPK/2026/MYS/017</span><span class="label">Prototype demo · patent filed</span></div>
+    <h1>ForenIQ</h1>
+    <p class="lede">AI-assisted analysis of Cellebrite UFDR phone extractions. Every sentence it writes is checked against the records it cites, and every action is sealed in a hash-chained audit log.</p>
+    <p class="notice"><strong>All data on this page is synthetic.</strong> "Operation Kaveri" is a fictional case generated for testing. The names, phone numbers and bank details are invented and belong to no real person. The figures below come from one recorded run of the prototype on a clean Python 3.12 install.</p>
+    <div class="links">
+      <a class="btn primary" href="https://github.com/suhanii-an/AI-based-UFDR-Analysis-tool-digital-forensics-" target="_blank" rel="noopener">Source on GitHub</a>
+      <a class="btn" href="#screens">Tour the app</a>
+      <a class="btn" href="#verifier">See the verifier</a>
+      <a class="btn" id="pdfLink" href="sample_report.pdf" target="_blank" rel="noopener" hidden>Sample report (PDF)</a>
+    </div>
+  </div>
+</header>
+
+<section id="case">
+  <div class="sec-head"><span class="label">The case</span><h2>Three phones, one fictional fraud ring</h2>
+  <p class="muted">Betting operators (phone D1) move player money through rented "mule" bank accounts (phone D2). One broker links the two groups, who never talk directly. D3 belongs to a victim who was drawn in through a fake "VIP tips" group and paid into the mule accounts.</p></div>
+  <div class="kpis">
+    <div class="kpi"><b>12,910</b><span>records ingested from 3 UFDR files in 21.1 s</span></div>
+    <div class="kpi"><b>190 / 190</b><span>planted evidence records recovered</span></div>
+    <div class="kpi"><b>210</b><span>deleted records kept and flagged</span></div>
+    <div class="kpi"><b>3 / 3</b><span>planted anomalies ranked first on their phone</span></div>
+    <div class="kpi"><b>94</b><span>audit entries, hash chain valid</span></div>
+  </div>
+  <ol class="flow">
+    <li><strong>Ingest</strong>Upload the UFDR, compute SHA-256 and store it read-only.</li>
+    <li><strong>Parse</strong>Read report.xml into messages, calls, contacts, browser history and apps, keeping deleted items.</li>
+    <li><strong>Index</strong>BM25 keyword index plus multilingual embeddings for English and Hinglish.</li>
+    <li><strong>Analyse</strong>Hybrid search, Isolation Forest anomalies and a contact graph.</li>
+    <li><strong>Answer</strong>Cited answers, each sentence checked against its sources.</li>
+    <li><strong>Report</strong>PDF with the Section 63 BSA certificate details and a sealed audit trail.</li>
+  </ol>
+  <div class="tbl"><table>
+    <thead><tr><th>Phone</th><th>Owner</th><th>Role</th><th class="num">Records</th><th class="num">Seconds</th><th>SHA-256 on upload</th><th>Hash check</th></tr></thead>
+    <tbody id="ingestRows"></tbody>
+  </table></div>
+</section>
+
+<section id="screens">
+  <div class="sec-head"><span class="label">Screen tour</span><h2>The working app</h2><p class="muted">Screenshots from the React front end, taken during the recorded run.</p></div>
+  <div class="tour">
+    <nav role="tablist" aria-label="App screens" id="tourNav"></nav>
+    <figure><img id="tourImg" alt="" width="1440" height="1000"><figcaption id="tourCap"></figcaption></figure>
+  </div>
+</section>
+
+<section id="search">
+  <div class="sec-head"><span class="label">Search</span><h2>Plain questions, in English or Hinglish</h2>
+  <p class="muted">13 test questions were scored against ground truth from the data generator. Keyword search only matches an exact phrase, so natural questions return nothing. Meaning-based (semantic) search finds relevant records; hybrid mixes both rankings with reciprocal rank fusion. P@5 is the share of the top five results that are relevant. MRR rewards putting the first relevant result near the top.</p></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Mode</th><th class="num">P@5 (all)</th><th class="num">MRR (all)</th><th class="num">P@5 Hinglish</th><th class="num">MRR Hinglish</th></tr></thead>
+    <tbody id="searchSummary"></tbody>
+  </table></div>
+  <details><summary style="cursor:pointer;font-weight:600">All 13 questions</summary>
+  <div class="tbl" style="margin-top:12px"><table>
+    <thead><tr><th>Question</th><th>Language</th><th class="num">Keyword P@5</th><th class="num">Semantic P@5</th><th class="num">Hybrid P@5</th></tr></thead>
+    <tbody id="searchRows"></tbody>
+  </table></div></details>
+  <p class="muted" style="font-size:.9rem">These scores come from the offline fallback encoder, because the demo machine had no internet to download the Sentence-BERT model. With the full multilingual model the semantic and hybrid scores are expected to be higher.</p>
+</section>
+
+<section id="anomalies">
+  <div class="sec-head"><span class="label">Anomaly detection</span><h2>Unusual activity, compared with each phone's own normal</h2>
+  <p class="muted">An Isolation Forest scores six-hour windows on four features: message and call count, share of night-time activity, share of deleted records, and how spread out the contacts are. Each phone is compared with its own baseline. Each flag says which features drove it. The output describes statistics only; it makes no claim about guilt.</p></div>
+  <div class="grid3" id="anomCards"></div>
+</section>
+
+<section id="graph">
+  <div class="sec-head"><span class="label">Contact graph</span><h2>Finding the go-between</h2>
+  <p class="muted"><span id="graphStats"></span> Betweenness shows how often a person sits on the shortest path between two others. The broker, Ravi Hegde, is not a phone owner, yet he ranks second among non-owners. First is Deepak Gowda, who also posed as "Riya" with the victim. ForenIQ matched the two because both names use the same phone number.</p></div>
+  <div class="card"><div class="bars" id="graphBars"></div><p class="muted" style="font-size:.85rem">Grey bars are the three seized-phone owners. Blue bars are people found inside the data.</p></div>
+</section>
+
+<section id="verifier">
+  <div class="sec-head"><span class="label">Citation verifier</span><h2>No sentence gets through without its evidence</h2>
+  <p class="muted">The verifier is plain rule-based code with no AI model. A factual sentence must carry a citation tag, and the tag must point to a record that exists. Every name, amount, date and phone number in the sentence must also appear in that record. A sentence that fails is rewritten once, then removed. Below, a draft was deliberately tampered with: one true sentence and two made up.</p></div>
+  <div class="toggle" role="group" aria-label="Verifier view">
+    <button type="button" id="vDraft" aria-pressed="true">Check each sentence</button>
+    <button type="button" id="vFinal" aria-pressed="false">Text that reaches the report</button>
+  </div>
+  <div id="vOut" class="bars"></div>
+  <p class="muted" style="font-size:.9rem">In a separate run of 1,000 generated sentences, the verifier accepted or rejected every one correctly. For the question "<span id="ragQ"></span>", all <span id="ragN"></span> cited sentences in the live answer passed.</p>
+</section>
+
+<section id="audit">
+  <div class="sec-head"><span class="label">Chain of custody</span><h2>A tamper-evident audit log</h2>
+  <p class="muted">Every upload, search, answer and report is logged. Each log entry stores the hash of the one before it, so editing or deleting any entry breaks the chain from that point on. The report records the case's file hashes and the report hash, as Section 63 of the Bharatiya Sakshya Adhiniyam, 2023 requires.</p></div>
+  <div class="tbl"><table><tbody id="auditRows"></tbody></table></div>
+</section>
+
+<section id="run">
+  <div class="sec-head"><span class="label">Try it</span><h2>Run it on your own machine</h2><p class="muted">Needs Python 3.12 and Node.js 20 or newer. Windows users can run the numbered .bat files in the project folder instead.</p></div>
+<pre>git clone https://github.com/suhanii-an/AI-based-UFDR-Analysis-tool-digital-forensics-.git
+cd AI-based-UFDR-Analysis-tool-digital-forensics-
+./setup_mac_linux.sh                 # venv + pinned packages + frontend
+# start the API and UI (see RUN_DEMO.md), then load the demo case:
+python scripts/demo_operation_kaveri.py</pre>
+</section>
+
+<footer>
+  <p><strong style="color:var(--ink)">ForenIQ</strong> by Suhani A N, Vidyavarshini G and Vyshanth S U, guided by Dr. Prasad M R, Vidyavardhaka College of Engineering, Mysuru.</p>
+  <p>A research prototype, not a certified forensic tool. All case data is synthetic. Cellebrite and UFDR are referred to only to describe the input file format.</p>
+</footer>
+</div>
+
+<script>
+const D = {"ingestion": [{"device": "D1", "owner": "Vikram Rao", "role": "Suspect", "file": "D1_Vikram_Rao.ufdr", "sha256_server": "78a120bf1d985eb6bc186ffd9e0d89c51774a3e8cfee01b55d010abc5c5f3819", "hash_match": true, "records_parsed": 4995, "seconds": 7.7}, {"device": "D2", "owner": "Manoj Kumar", "role": "Suspect", "file": "D2_Manoj_Kumar.ufdr", "sha256_server": "54c9684c2238af535a8298fc28b75a7ffb88367b26130b9656603574b9622182", "hash_match": true, "records_parsed": 4487, "seconds": 7.7}, {"device": "D3", "owner": "Shalini Prasad", "role": "Victim (complainant)", "file": "D3_Shalini_Prasad.ufdr", "sha256_server": "b443facc33fe357cf6e4e1b0936c58f57b1cb64b50d93517b03952d436c13966", "hash_match": true, "records_parsed": 3428, "seconds": 5.7}], "search": {"summary": {"LEXICAL": {"P@5": 0.0, "MRR": 0.0, "P@5_hinglish": 0.0, "MRR_hinglish": 0.0}, "SEMANTIC": {"P@5": 0.4, "MRR": 0.56, "P@5_hinglish": 0.333, "MRR_hinglish": 0.483}, "HYBRID": {"P@5": 0.354, "MRR": 0.564, "P@5_hinglish": 0.2, "MRR_hinglish": 0.5}}, "queries": [{"q": "messages about sending money through UPI", "lang": "en", "relevant": 109, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.2, 0.25], "HYBRID": [0.2, 0.5]}, {"q": "paisa transfer kiya kya", "lang": "hinglish", "relevant": 27, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.4, 0.25], "HYBRID": [0.2, 0.5]}, {"q": "who asked to delete chats or destroy evidence", "lang": "en", "relevant": 8, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.4, 0.25], "HYBRID": [0.4, 0.33]}, {"q": "naya SIM lene ki baat", "lang": "hinglish", "relevant": 8, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.4, 1.0], "HYBRID": [0.4, 1.0]}, {"q": "conversation about getting new bank accounts", "lang": "en", "relevant": 8, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.8, 1.0], "HYBRID": [0.8, 1.0]}, {"q": "betting odds for tonight's match", "lang": "en", "relevant": 27, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.4, 1.0], "HYBRID": [0.4, 0.5]}, {"q": "late night meeting location", "lang": "en", "relevant": 6, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.0, 0.0], "HYBRID": [0.0, 0.0]}, {"q": "passbook and ATM card collection", "lang": "en", "relevant": 8, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.8, 1.0], "HYBRID": [0.8, 1.0]}, {"q": "how was the victim first approached", "lang": "en", "relevant": 22, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.6, 1.0], "HYBRID": [0.6, 1.0]}, {"q": "victim ko withdrawal kyun nahi mila", "lang": "hinglish", "relevant": 4, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.2, 0.2], "HYBRID": [0.0, 0.0]}, {"q": "messages pressuring the victim to deposit more money", "lang": "en", "relevant": 5, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.4, 0.5], "HYBRID": [0.4, 1.0]}, {"q": "victim asking for her money back", "lang": "en", "relevant": 7, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.2, 0.5], "HYBRID": [0.0, 0.17]}, {"q": "complaint to cyber crime helpline", "lang": "en", "relevant": 3, "LEXICAL": [0.0, 0.0], "SEMANTIC": [0.4, 0.33], "HYBRID": [0.4, 0.33]}]}, "anomalies": [{"device": "D1", "owner": "Vikram Rao", "rank": {"night_time_burst": 1, "deletion_spree": 1}, "windows": 230, "flagged": 12, "top": [{"window_start_ist": "13 Aug 23:30", "type": "UNUSUAL_DELETION_ACTIVITY", "score": 1.0, "explanation": "Statistically unusual pattern detected: 0.62 deleted_record_ratio observed (baseline median: 0.0, mean: 0.03, z-score: 7.14). Feature attribution: deleted_record_ratio 53%, night_activity_ratio 36%, contact_entropy 8%.", "matches_planted": "night_time_burst"}, {"window_start_ist": "11 Aug 23:30", "type": "UNUSUAL_TIME_OF_DAY", "score": 0.9721, "explanation": "Statistically unusual pattern detected: 0.89 night_activity_ratio observed (baseline median: 0.0, mean: 0.06, z-score: 4.93). Feature attribution: night_activity_ratio 48%, deleted_record_ratio 31%, contact_entropy 15%.", "matches_planted": "night_time_burst"}, {"window_start_ist": "12 Aug 23:30", "type": "UNUSUAL_DELETION_ACTIVITY", "score": 0.9251, "explanation": "Statistically unusual pattern detected: 0.52 deleted_record_ratio observed (baseline median: 0.0, mean: 0.03, z-score: 5.96). Feature attribution: deleted_record_ratio 50%, night_activity_ratio 39%, contact_entropy 7%.", "matches_planted": "night_time_burst"}]}, {"device": "D2", "owner": "Manoj Kumar", "rank": {"volume_spike": 1}, "windows": 224, "flagged": 23, "top": [{"window_start_ist": "17 Aug 05:30", "type": "COMMUNICATION_BURST", "score": 1.0, "explanation": "Statistically unusual pattern detected: 56.0 communication_count observed (baseline median: 14.0, mean: 15.91, z-score: 3.41). Feature attribution: communication_count 75%, deleted_record_ratio 19%, night_activity_ratio 6%.", "matches_planted": "volume_spike"}, {"window_start_ist": "09 Aug 23:30", "type": "UNUSUAL_TIME_OF_DAY", "score": 0.9441, "explanation": "Statistically unusual pattern detected: 0.67 night_activity_ratio observed (baseline median: 0.0, mean: 0.04, z-score: 4.97). Feature attribution: night_activity_ratio 62%, contact_entropy 23%, communication_count 10%.", "matches_planted": null}, {"window_start_ist": "21 Jul 23:30", "type": "UNUSUAL_TIME_OF_DAY", "score": 0.9305, "explanation": "Statistically unusual pattern detected: 0.7 night_activity_ratio observed (baseline median: 0.0, mean: 0.04, z-score: 5.23). Feature attribution: night_activity_ratio 64%, contact_entropy 23%, communication_count 9%.", "matches_planted": null}]}, {"device": "D3", "owner": "Shalini Prasad", "rank": {}, "windows": 223, "flagged": 8, "top": [{"window_start_ist": "06 Jul 11:30", "type": "COMMUNICATION_BURST", "score": 1.0, "explanation": "Statistically unusual pattern detected: 51.0 communication_count observed (baseline median: 10.0, mean: 11.29, z-score: 4.64). Feature attribution: communication_count 72%, contact_entropy 24%, night_activity_ratio 4%.", "matches_planted": null}, {"window_start_ist": "14 Jul 23:30", "type": "UNUSUAL_TIME_OF_DAY", "score": 0.9191, "explanation": "Statistically unusual pattern detected: 0.75 night_activity_ratio observed (baseline median: 0.0, mean: 0.04, z-score: 5.29). Feature attribution: night_activity_ratio 80%, contact_entropy 16%, communication_count 4%.", "matches_planted": null}, {"window_start_ist": "22 Aug 23:30", "type": "UNUSUAL_TIME_OF_DAY", "score": 0.8761, "explanation": "Statistically unusual pattern detected: 0.43 night_activity_ratio observed (baseline median: 0.0, mean: 0.04, z-score: 2.91). Feature attribution: night_activity_ratio 95%, contact_entropy 4%, communication_count 1%.", "matches_planted": null}]}], "graph": {"nodes": 139, "edges": 647, "communities": 6, "top_non_owner": "Deepak Gowda +915589083863", "broker_rank_among_non_owners": 2, "riya_is_deepak": true, "top": [{"label": "Vikram Rao +915510433218", "betweenness": 0.475, "degree": 93, "is_device_owner": true}, {"label": "Deepak Gowda +915589083863", "betweenness": 0.433, "degree": 45, "is_device_owner": false}, {"label": "Shalini Prasad +915598520566", "betweenness": 0.409, "degree": 87, "is_device_owner": true}, {"label": "Manoj Kumar +915559407816", "betweenness": 0.398, "degree": 79, "is_device_owner": true}, {"label": "Ravi Hegde +915583503056", "betweenness": 0.3, "degree": 20, "is_device_owner": false}, {"label": "Sri Ganesh Mobiles +915572423884", "betweenness": 0.07, "degree": 4, "is_device_owner": false}]}, "verifier": {"draft": "On 2026-08-19, +915583503056 sent the message \"Split it into small UPI amounts, below 50k each\" [EVIDENCE-001].\nOn 2026-08-19, +915583503056 sent ₹9,75,000 to Arjun Mehta [EVIDENCE-001].\nThe same sender also called +915500000000 on 2026-08-30 [EVIDENCE-002].", "all_passed": false, "sentences": [{"sentence": "On 2026-08-19, +915583503056 sent the message \"Split it into small UPI amounts, below 50k each\" [EVIDENCE-001].", "status": "ACCEPTED", "cited_tags": ["EVIDENCE-001"], "reasons": []}, {"sentence": "On 2026-08-19, +915583503056 sent ₹9,75,000 to Arjun Mehta [EVIDENCE-001].", "status": "REJECTED", "cited_tags": ["EVIDENCE-001"], "reasons": ["amount 9,75,000 not in cited records", "number 9,75,000 not in cited records", "name 'Arjun Mehta' not in cited records"]}, {"sentence": "The same sender also called +915500000000 on 2026-08-30 [EVIDENCE-002].", "status": "REJECTED", "cited_tags": ["EVIDENCE-002"], "reasons": ["cited record(s) do not exist: EVIDENCE-002", "phone number +915500000000 not in cited records", "date 2026-08-30 not in cited records"]}], "verified_text": "On 2026-08-19, +915583503056 sent the message \"Split it into small UPI amounts, below 50k each\" [EVIDENCE-001].\n[Statement removed: not supported by the cited records]\n[Statement removed: not supported by the cited records]"}, "audit": {"valid": true, "entries_checked": 94, "newly_sealed": 94, "pending_unsealed": 0, "head_hash": "086806335f490c62016ca1bfa89fda8f438914235cc366a1d897751aec8339b5"}, "report": {"report_id": "REP-CASE-2026-000001-D49F3A", "report_hash": "c85ec516a6b5eb9920a485a11c01d07e9fd88eda81a8d9a335e700a6f6338f45", "findings": 3, "citations": 500, "certificate_records": 3, "pdf": "ForenIQ_Operation_Kaveri_Report.pdf"}, "provenance": {"planted_total": 190, "planted_recovered": 190, "deleted_records_preserved": 210, "example": {"record_identifier": "483656fb-949c-4e1a-bee6-32f3f80a9cde", "content": "Rs.47,000.00 debited from A/c XX4521 to VPA kaka.hegde@synthbank UPI Ref 894318448144. Not you? Call 1800-000-000. -Kaveri Synth Bank", "metadata": {"source_reference": "files/Database/data/data/com.android.providers.telephony/databases/mmssms.db#row=215", "deleted_state": "Intact", "device_owner": "Manoj Kumar", "chat_name": null}}}, "rag": {"q": "messages about sending money through UPI", "checks": [{"sentence": "Based on the retrieved forensic evidence, 14 relevant records were identified:", "status": "NON_FACTUAL", "cited_tags": [], "reasons": []}, {"sentence": "• [EVIDENCE-001] A browser record via Chrome at 2026-08-23T04:43:19 contains content: \"how to get money back from upi fraud - Google Search (https://www.google.com/search?q=how+to+get+money+back+from+upi+fraud)\".", "status": "ACCEPTED", "cited_tags": ["EVIDENCE-001"], "reasons": []}, {"sentence": "• [EVIDENCE-002] A message record via WhatsApp from +915583503056 to +915510433218 at 2026-08-19T15:47:10 contains content: \"Split it into small UPI amounts, below 50k each\".", "status": "ACCEPTED", "cited_tags": ["EVIDENCE-002"], "reasons": []}, {"sentence": "• [EVIDENCE-003] A browser record via Chrome at 2026-08-19T01:37:08 contains content: \"upi daily transaction limit per account - Google Search (https://www.google.com/search?q=upi+daily+transaction+limit+per+account)\".", "status": "ACCEPTED", "cited_tags": ["EVIDENCE-003"], "reasons": []}, {"sentence": "• [EVIDENCE-004] A message record via SMS from VM-KSBANK to +915510433218 at 2026-08-17T12:53:32 contains content: \"Rs.2300.00 debited from A/c XX6309 via UPI to merchant. Ref 912338750761. -Kaveri Synth Bank\".", "status": "ACCEPTED", "cited_tags": ["EVIDENCE-004"], "reasons": []}, {"sentence": "• [EVIDENCE-005] A message record via SMS from VM-KSBANK to +915510433218 at 2026-07-30T02:28:32 contains content: \"Rs.450.00 debited from A/c XX5461 via UPI to merchant. Ref 574415672515. -Kaveri Synth Bank\".", "status": "ACCEPTED", "cited_tags": ["EVIDENCE-005"], "reasons": []}], "citations": 14}};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+if (!/claude\.ai|claudeusercontent|claude\.site/.test(location.hostname)) $("pdfLink").hidden = false;
+
+$("ingestRows").innerHTML = D.ingestion.map(r => `<tr><td class="mono">${r.device}</td><td>${esc(r.owner)}</td><td>${esc(r.role)}</td><td class="num">${r.records_parsed.toLocaleString("en-IN")}</td><td class="num">${r.seconds}</td><td class="mono hash" style="min-width:16ch">${r.sha256_server.slice(0,16)}…</td><td>${r.hash_match ? '<span class="pill ok">Matches</span>' : '<span class="pill bad">Mismatch</span>'}</td></tr>`).join("");
+
+const shots = [
+  ["01_cases","Cases","Case list. Operation Kaveri holds three seized phones."],
+  ["02_case_evidence","Evidence","Each UFDR upload with its SHA-256 hash, record count and processing status."],
+  ["03_search","Search","Hybrid search over all three phones, with filters for phone, record type and time."],
+  ["04_assistant","Assistant","Questions answered in plain language. Every line carries a citation that opens the source record."],
+  ["05_anomalies","Anomalies","Isolation Forest flags with the features behind each one, compared with that phone's baseline."],
+  ["06_graph","Graph","Contact network with detected communities. Size shows betweenness."],
+  ["07_reports_list","Reports","Generated reports, each identified by its hash."],
+  ["08_report_generated","Report","Report preview: findings, citations and the Section 63 certificate details."],
+  ["09_audit","Audit","Audit trail with the hash chain check."]
+];
+function show(i){
+  shots.forEach((s,j)=>$("tourNav").children[j].setAttribute("aria-selected", j===i));
+  $("tourImg").src = "img/"+shots[i][0]+".jpg"; $("tourImg").alt = shots[i][1]+" screen"; $("tourCap").textContent = shots[i][2];
+}
+$("tourNav").innerHTML = shots.map((s,i)=>`<button role="tab" type="button" aria-selected="false">${s[1]}</button>`).join("");
+[...$("tourNav").children].forEach((b,i)=>b.addEventListener("click",()=>show(i)));
+show(0);
+
+const modeName = {LEXICAL:"Keyword only",SEMANTIC:"Semantic",HYBRID:"Hybrid (BM25 + semantic)"};
+const bar = v => `<span class="cell-bar">${v.toFixed(2)}<i style="width:${Math.round(v*60)}px"></i></span>`;
+$("searchSummary").innerHTML = Object.entries(D.search.summary).map(([m,v])=>`<tr><td>${modeName[m]}</td><td class="num">${bar(v["P@5"])}</td><td class="num">${bar(v.MRR)}</td><td class="num">${bar(v["P@5_hinglish"])}</td><td class="num">${bar(v.MRR_hinglish)}</td></tr>`).join("");
+$("searchRows").innerHTML = D.search.queries.map(q=>`<tr><td>${esc(q.q)}</td><td>${q.lang==="hinglish"?"Hinglish":"English"}</td><td class="num">${q.LEXICAL[0].toFixed(1)}</td><td class="num">${q.SEMANTIC[0].toFixed(1)}</td><td class="num">${q.HYBRID[0].toFixed(1)}</td></tr>`).join("");
+
+const typeName = t => t.replace(/_/g," ").toLowerCase().replace(/^\w/,c=>c.toUpperCase());
+const planted = {night_time_burst:"night-time burst",deletion_spree:"deletion spree",volume_spike:"volume spike"};
+$("anomCards").innerHTML = D.anomalies.map(a=>{
+  const ranks = Object.entries(a.rank);
+  const head = ranks.length ? ranks.map(([k,r])=>`<span class="pill ok">Planted ${planted[k]||k}: rank #${r}</span>`).join(" ") : `<span class="pill n">Victim phone: nothing planted</span>`;
+  return `<div class="card"><div><span class="label">${a.device}</span><h3>${esc(a.owner)}</h3></div><div style="display:flex;gap:6px;flex-wrap:wrap">${head}</div><p class="muted" style="font-size:.86rem">${a.flagged} of ${a.windows} windows flagged</p>${a.top.map(f=>`<div class="flag"><div style="display:flex;justify-content:space-between;gap:8px"><strong>${typeName(f.type)}</strong><span class="mono">${f.score.toFixed(2)}</span></div><span class="mono muted">${esc(f.window_start_ist)} IST</span><span class="muted">${esc((f.explanation.split("Feature attribution: ")[1]||"").replace(/\.$/,""))}</span></div>`).join("")}</div>`;
+}).join("");
+
+$("graphStats").textContent = `${D.graph.nodes} people, ${D.graph.edges} links, ${D.graph.communities} communities.`;
+const maxB = Math.max(...D.graph.top.map(n=>n.betweenness));
+$("graphBars").innerHTML = D.graph.top.map(n=>{const [name,...num]=n.label.split(" +");return `<div class="bar${n.is_device_owner?" owner":""}"><span>${esc(n.label.replace(/ \+\d+$/,""))} <span class="mono muted">+${esc(n.label.split("+")[1])}</span>${n.is_device_owner?' <span class="pill n">owner</span>':""}</span><span class="mono" style="text-align:right">${n.betweenness.toFixed(2)}</span><div class="track"><div class="fill" style="width:${(n.betweenness/maxB*100).toFixed(1)}%"></div></div></div>`}).join("");
+
+function renderV(final){
+  $("vDraft").setAttribute("aria-pressed", !final); $("vFinal").setAttribute("aria-pressed", final);
+  if (final) { $("vOut").innerHTML = `<pre style="white-space:pre-wrap">${esc(D.verifier.verified_text)}</pre>`; return; }
+  $("vOut").innerHTML = D.verifier.sentences.map(s=>`<div class="sentence ${s.status==="ACCEPTED"?"acc":"rej"}"><div>${s.status==="ACCEPTED"?'<span class="pill ok">Accepted</span>':'<span class="pill bad">Rejected</span>'}</div><div>${esc(s.sentence)}</div>${s.reasons.length?`<ul>${s.reasons.map(r=>`<li>${esc(r)}</li>`).join("")}</ul>`:""}</div>`).join("");
+}
+$("vDraft").onclick=()=>renderV(false); $("vFinal").onclick=()=>renderV(true); renderV(false);
+$("ragQ").textContent = D.rag.q; $("ragN").textContent = D.rag.citations;
+
+const A = D.audit, R = D.report;
+$("auditRows").innerHTML = [
+  ["Entries checked", A.entries_checked],
+  ["Chain status", A.valid ? '<span class="pill ok">Valid, no gaps or edits</span>' : '<span class="pill bad">Broken</span>'],
+  ["Latest entry hash", `<span class="mono hash">${A.head_hash}</span>`],
+  ["Report ID", `<span class="mono">${esc(R.report_id)}</span>`],
+  ["Report hash", `<span class="mono hash">${R.report_hash}</span>`],
+  ["Report contents", `${R.findings} findings, ${R.citations} citations, ${R.certificate_records} evidence files in the certificate`]
+].map(([k,v])=>`<tr><th style="width:30%">${k}</th><td>${v}</td></tr>`).join("");
+</script>
+
+</body>
+</html>
